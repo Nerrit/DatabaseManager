@@ -14,4 +14,7 @@ public interface Buff163GoodsIdRepository extends ReactiveCrudRepository<Buff163
 
     @Query("SELECT goods_id FROM public.buff163_goods_ids")
     Flux<Integer> findAllGoodsIds();
+
+    @Query("SELECT hash_name FROM public.buff163_goods_ids WHERE goods_id = :goodsId")
+    Flux<String> findHashNameByGoodsId(int goodsId);
 }
