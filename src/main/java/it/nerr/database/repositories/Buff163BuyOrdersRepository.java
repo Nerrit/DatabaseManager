@@ -21,6 +21,30 @@ public interface Buff163BuyOrdersRepository extends ReactiveCrudRepository<Buff1
             " 1")
     Mono<String> findBuyDataJsonByGoodsId(Integer goodsId);
 
+    default Mono<BuffBuyData> findBuyDataByGoodsId(Integer goodsId) {
+        return findBuyDataJsonByGoodsId(goodsId).handle((buyDataJson, sink) -> {
+            try {
+                sink.next(new ObjectMapper().readValue(buyDataJson, BuffBuyData.class));
+            } catch (JsonProcessingException e) {
+                sink.error(new RuntimeException(e));
+            }
+        });
+    }
+
+    @Query("SELECT buy_orders FROM public.buff163_buy_orders WHERE goods_id = :goodsId AND updated_at > :updatedAfter ORDER BY updated_at DESC LIMIT" +
+            " 1")
+    Mono<String> findBuyDataJsonByGoodsId(Integer goodsId, LocalDateTime updatedAfter);
+
+    default Mono<BuffBuyData> findBuyDataByGoodsId(Integer goodsId, LocalDateTime updatedAfter) {
+        return findBuyDataJsonByGoodsId(goodsId, updatedAfter).handle((buyDataJson, sink) -> {
+            try {
+                sink.next(new ObjectMapper().readValue(buyDataJson, BuffBuyData.class));
+            } catch (JsonProcessingException e) {
+                sink.error(new RuntimeException(e));
+            }
+        });
+    }
+
     default Mono<BuffBuyData> saveBuyData(Integer goodsId, BuffBuyData buyData, LocalDateTime updatedAt) {
         try {
             return save(new Buff163BuyOrdersRecord(goodsId, Json.of(new ObjectMapper().writeValueAsString(buyData)),
@@ -38,16 +62,6 @@ public interface Buff163BuyOrdersRepository extends ReactiveCrudRepository<Buff1
 
     default Mono<BuffBuyData> saveBuyData(Integer goodsId, BuffBuyData buyData) {
         return saveBuyData(goodsId, buyData, LocalDateTime.now());
-    }
-
-    default Mono<BuffBuyData> findBuyDataByGoodsId(Integer goodsId) {
-        return findBuyDataJsonByGoodsId(goodsId).handle((buyDataJson, sink) -> {
-            try {
-                sink.next(new ObjectMapper().readValue(buyDataJson, BuffBuyData.class));
-            } catch (JsonProcessingException e) {
-                sink.error(new RuntimeException(e));
-            }
-        });
     }
 
     @Table(name = "public.buff163_buy_orders")
