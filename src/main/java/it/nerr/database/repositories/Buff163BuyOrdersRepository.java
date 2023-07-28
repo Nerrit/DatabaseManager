@@ -19,7 +19,7 @@ public interface Buff163BuyOrdersRepository extends ReactiveCrudRepository<Buff1
 
     @Query("SELECT buy_orders FROM public.buff163_buy_orders WHERE goods_id = :goodsId ORDER BY updated_at DESC LIMIT" +
             " 1")
-    Mono<BuffBuyData> findBuyDataByGoodsId(Integer goodsId);
+    Mono<String> findBuyDataJsonByGoodsId(Integer goodsId);
 
     default Mono<BuffBuyData> saveBuyData(Integer goodsId, BuffBuyData buyData, LocalDateTime updatedAt) {
         try {
@@ -38,6 +38,16 @@ public interface Buff163BuyOrdersRepository extends ReactiveCrudRepository<Buff1
 
     default Mono<BuffBuyData> saveBuyData(Integer goodsId, BuffBuyData buyData) {
         return saveBuyData(goodsId, buyData, LocalDateTime.now());
+    }
+
+    default Mono<BuffBuyData> findBuyDataByGoodsId(Integer goodsId) {
+        return findBuyDataJsonByGoodsId(goodsId).handle((buyDataJson, sink) -> {
+            try {
+                sink.next(new ObjectMapper().readValue(buyDataJson, BuffBuyData.class));
+            } catch (JsonProcessingException e) {
+                sink.error(new RuntimeException(e));
+            }
+        });
     }
 
     @Table(name = "public.buff163_buy_orders")

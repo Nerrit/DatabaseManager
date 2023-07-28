@@ -20,7 +20,7 @@ public interface Buff163SellOrdersRepository extends
 
     @Query("SELECT sell_orders FROM public.buff163_sell_orders WHERE goods_id = :goodsId ORDER BY updated_at DESC LIMIT" +
             " 1")
-    Mono<BuffSellData> findSellDataByGoodsId(Integer goodsId);
+    Mono<String> findSellDataJsonByGoodsId(Integer goodsId);
 
     default Mono<BuffSellData> saveSellData(Integer goodsId, BuffSellData sellData, LocalDateTime updatedAt) {
         try {
@@ -39,6 +39,16 @@ public interface Buff163SellOrdersRepository extends
 
     default Mono<BuffSellData> saveSellData(Integer goodsId, BuffSellData sellData) {
         return saveSellData(goodsId, sellData, LocalDateTime.now());
+    }
+
+    default Mono<BuffSellData> findSellDataByGoodsId(Integer goodsId) {
+        return findSellDataJsonByGoodsId(goodsId).handle((sellDataJson, sink) -> {
+            try {
+                sink.next(new ObjectMapper().readValue(sellDataJson, BuffSellData.class));
+            } catch (JsonProcessingException e) {
+                sink.error(new RuntimeException(e));
+            }
+        });
     }
 
     @Table(name = "public.buff163_sell_orders")
